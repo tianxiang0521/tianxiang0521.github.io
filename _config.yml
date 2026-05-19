@@ -1,8 +1,9 @@
 # Basic Information 
-title: Your Name
-position: Ph.D. Student
-affiliation: Your Affiliation
-email: yourname (at) example.edu
+title: Tian Xiang (田翔)
+position: M.Eng. Student
+affiliation: Harbin Institute of Technology
+affiliation_link: https://en.hit.edu.cn/
+email: hittianxiang@gmail.com
 
 # Search Engine Optimization (SEO)
 # The following information is used to improve the website traffic from search engines, e.g., Google.
@@ -14,13 +15,22 @@ canonical: https://minimal-light-theme.yliu.me/
 # If you don't need one of them, you may delete the corresponding line.
 google_scholar: https://scholar.google.com/
 cv_link: assets/files/curriculum_vitae.pdf
-github_link: https://github.com/
-linkedin: https://www.linkedin.com/
-twitter: https://twitter.com/
+github_link: https://github.com/tianxiang0521
+linkedin:
+twitter:
+
+# Navigation
+nav:
+  - name: Home
+    link: /
+  - name: Blog
+    link: /blog/
+  - name: Links
+    link: /links/
 
 # Images (e.g., your profile picture and your website's favicon) 
 # "favicon" and "favicon_dark" are used for the light and dark modes, respectively. 
-avatar: ./assets/img/avatar.png
+avatar: ./assets/img/tianxiang.png
 favicon: ./assets/img/favicon.png
 favicon_dark: ./assets/img/favicon-dark.png
 
