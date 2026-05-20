@@ -36,7 +36,12 @@ blockquote { background: var(--global-bg-color); border-left: 2px solid var(--gl
 
 .publications ol.bibliography { list-style: none; padding: 0; margin-top: 0; }
 
-.publications ol.bibliography li { min-height: 110px; margin-bottom: 0.5rem; }
+.publications ol.bibliography li {
+    min-height: 110px;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    padding-bottom: 1rem;
+}
 
 .publications ol.bibliography li .abbr { height: 8rem; margin-bottom: 0.5rem; }
 
@@ -56,7 +61,20 @@ blockquote { background: var(--global-bg-color); border-left: 2px solid var(--gl
 
 .publications ol.bibliography li .author > em { border-bottom: 1px solid; font-style: normal; }
 
+.publications ol.bibliography li .author i,
+.publications ol.bibliography li .periodical i {
+    margin-right: 0.35rem;
+    color: var(--global-theme-color);
+}
+
+.publications ol.bibliography li .periodical {
+    margin-top: 0.2rem;
+    margin-bottom: 0.45rem;
+}
+
 .publications ol.bibliography li .links a.btn { color: #000000; border: 1px solid #000000; padding-left: 0.5rem; padding-right: 0.5rem; padding-top: 0.1rem; padding-bottom: 0.1rem; }
+
+.publications ol.bibliography li .links a.btn i { margin-right: 0.3rem; }
 
 .publications ol.bibliography li .links a.btn:hover { color: var(--global-theme-color); border-color: var(--global-theme-color); }
 
@@ -73,3 +91,23 @@ blockquote { background: var(--global-bg-color); border-left: 2px solid var(--gl
 .publications ol.bibliography li div.abstract.hidden.open { border-color: var(--global-text-color); }
 
 .publications ol.bibliography li .teaser { border-radius: 8px; box-shadow: 3px 3px 6px #888; height: 123px; width: 270px; margin-top: 5px; margin-left: 5px; margin-bottom: 5px; object-fit: cover; }
+
+.publications ol.bibliography li .teaser-placeholder {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 0.3rem;
+    color: #6b7280;
+    border: 1px dashed #c7c7c7;
+    background: linear-gradient(135deg, #fafafa, #f0f3f8);
+}
+
+.publications ol.bibliography li .teaser-placeholder i {
+    font-size: 1.1rem;
+}
+
+.publications ol.bibliography li .teaser-placeholder span {
+    font-size: 0.76rem;
+    letter-spacing: 0.02em;
+}
