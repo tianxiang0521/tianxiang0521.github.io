@@ -25,18 +25,19 @@
     <link rel="stylesheet" href="{{ "/assets/css/font.css" | relative_url }}">
     {% endif %}
     {% if site.auto_dark_mode %}
-    <link rel="stylesheet" href="{{ "/assets/css/style.css" | relative_url }}">
     <link rel="stylesheet" href="{{ "/assets/css/publications.css" | relative_url }}">
+    <link rel="stylesheet" href="{{ "/assets/css/style.css" | relative_url }}">
     {% else %}
-    <link rel="stylesheet" href="{{ "/assets/css/style-no-dark-mode.css" | relative_url }}">
     <link rel="stylesheet" href="{{ "/assets/css/publications-no-dark-mode.css" | relative_url }}">
+    <link rel="stylesheet" href="{{ "/assets/css/style-no-dark-mode.css" | relative_url }}">
     {% endif %}
 
   </head>
-  <body>
+  <body class="{% if page.url == "/" %}page-home{% elsif page.layout == "post" %}page-post{% else %}page-{{ page.title | default: "content" | slugify }}{% endif %}">
     <div class="wrapper">
       <header>
-        
+        <div class="profile-kicker"><span class="profile-status-dot" aria-hidden="true"></span> Research profile</div>
+
         {% if site.avatar %}
         <a class="image avatar" href="{{ "/" | relative_url }}"><img src="{{ site.avatar | relative_url }}" alt="Portrait of {{ site.title }}" /></a>
         {% endif %}
@@ -55,8 +56,10 @@
         <email>{{ site.email }}</email>
         {% endif %}
 
-        <br>
-        <br>
+        <div class="research-signals" aria-label="Research focus">
+          <span>RAG</span><span>RL</span><span>Embodied AI</span>
+        </div>
+
         <div class="social-icons">
         {% if site.google_scholar %}
         <a style="margin: 0 5px 0 0" href="{{ site.google_scholar }}">
@@ -88,7 +91,6 @@
         </a>
         {% endif %}
         </div>
-        <br>
         <nav class="site-nav" aria-label="Primary navigation">
           {% for item in site.nav %}
           <a href="{{ item.link | relative_url }}"{% if page.url == item.link or item.link != "/" and page.url contains item.link %} class="active" aria-current="page"{% endif %}>{{ item.name }}</a>
@@ -97,6 +99,10 @@
 
       </header>
       <section>
+
+      <div class="content-path" aria-hidden="true">
+        <span class="content-path-user">tx@portfolio</span><span>:</span><span>~/{% if page.url == "/" %}home{% elsif page.layout == "post" %}blog/post{% else %}{{ page.title | default: "page" | downcase }}{% endif %}</span><span class="content-path-prompt">$</span>
+      </div>
 
       {{ content }}
 
