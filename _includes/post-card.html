@@ -1,0 +1,21 @@
+{% assign post_item = include.post %}
+{% assign word_count = post_item.content | strip_html | number_of_words %}
+{% assign reading_time = word_count | plus: 199 | divided_by: 200 %}
+{% if reading_time < 1 %}{% assign reading_time = 1 %}{% endif %}
+<article class="post-card">
+  <a class="post-card-link" href="{{ post_item.url | relative_url }}" aria-label="Read {{ post_item.title }}">
+    <h3>{{ post_item.title }}</h3>
+    <div class="post-meta">
+      <time datetime="{{ post_item.date | date_to_xmlschema }}">{{ post_item.date | date: "%b %d, %Y" }}</time>
+      <span aria-hidden="true">·</span>
+      <span>{{ reading_time }} min read</span>
+    </div>
+    {% if post_item.tags and post_item.tags != empty %}
+    <div class="post-tags" aria-label="Tags">
+      {% for tag in post_item.tags %}<span>{{ tag }}</span>{% endfor %}
+    </div>
+    {% endif %}
+    <p class="post-excerpt">{{ post_item.description | default: post_item.excerpt | strip_html | normalize_whitespace | truncate: 220 }}</p>
+    <span class="post-read-more" aria-hidden="true">Read article <span>→</span></span>
+  </a>
+</article>

@@ -1,10 +1,20 @@
 ---
 layout: homepage
 title: Blog
+description: Notes on research, engineering, large language models, and embodied intelligence by Tian Xiang.
+permalink: /blog/
 ---
 
-## Posts
+<div class="blog-index">
+  <div class="blog-index-header">
+    <h2>Blog</h2>
+    <p>Notes on research, engineering, large language models, and embodied intelligence.</p>
+  </div>
 
 {% for post in site.posts %}
-- [{{ post.title }}]({{ post.url | relative_url }}) - {{ post.date | date: "%b %d, %Y" }}
+  {% include post-card.html post=post %}
+{% else %}
+  <p class="blog-empty">No posts yet.</p>
 {% endfor %}
+
+</div>

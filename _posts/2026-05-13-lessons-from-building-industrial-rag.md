@@ -2,6 +2,7 @@
 layout: post
 title: "Lessons From Building an Industrial RAG-SFT QA System"
 date: 2026-05-13 10:00:00 +0800
+description: "Practical lessons from building and deploying an industrial RAG-SFT knowledge QA system, from retrieval and reranking to evaluation and user trust."
 tags: [RAG, SFT, LoRA, Industry, LLM]
 ---
 

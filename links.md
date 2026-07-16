@@ -1,6 +1,7 @@
 ---
 layout: homepage
 title: Links
+permalink: /links/
 ---
 
 ## Friends
