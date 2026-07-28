@@ -1,4 +1,10 @@
 main:
+  - title: "Estimation Debiasing for Asynchronous Policy Optimization"
+    authors: Wei Han, Yuanxing Liu, <strong>Xiang Tian</strong>, Weinan Zhang, Jiajia Zhang, Ting Liu
+    conference_short: AAAI 2027
+    conference: AAAI 2027 Conference Submission.
+    image: ./assets/img/BYPO.png
+
   - title: "FAER: Benchmarking VLMs for Failure-Aware Embodied Reasoning"
     authors: Hao Song, Kaifeng Liu, Yuanxing Liu, <strong>Xiang Tian</strong>, et al.
     conference_short: ACL Findings
