@@ -18,18 +18,19 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/academicons/1.8.6/css/academicons.min.css" integrity="sha256-uFVgMKfistnJAfoCUQigIl+JfUaP47GrRKjf6CTPVmw=" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    
+
+    {% assign asset_version = site.time | date: "%s" %}
     {% if site.font == "Sans Serif" %}
     <link rel="stylesheet" href="{{ "/assets/css/font_sans_serif.css" | relative_url }}">
     {% else %}
     <link rel="stylesheet" href="{{ "/assets/css/font.css" | relative_url }}">
     {% endif %}
     {% if site.auto_dark_mode %}
-    <link rel="stylesheet" href="{{ "/assets/css/publications.css" | relative_url }}">
-    <link rel="stylesheet" href="{{ "/assets/css/style.css" | relative_url }}">
+    <link rel="stylesheet" href="{{ "/assets/css/publications.css" | relative_url }}?v={{ asset_version }}">
+    <link rel="stylesheet" href="{{ "/assets/css/style.css" | relative_url }}?v={{ asset_version }}">
     {% else %}
-    <link rel="stylesheet" href="{{ "/assets/css/publications-no-dark-mode.css" | relative_url }}">
-    <link rel="stylesheet" href="{{ "/assets/css/style-no-dark-mode.css" | relative_url }}">
+    <link rel="stylesheet" href="{{ "/assets/css/publications-no-dark-mode.css" | relative_url }}?v={{ asset_version }}">
+    <link rel="stylesheet" href="{{ "/assets/css/style-no-dark-mode.css" | relative_url }}?v={{ asset_version }}">
     {% endif %}
 
   </head>
