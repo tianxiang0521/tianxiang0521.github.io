@@ -13,6 +13,18 @@ tags: [Terminal Agent, Agentic AI, Data Synthesis, SFT, Reinforcement Learning]
 
 最终，RST 从 639 个种子任务出发，经过 15 轮递归合成得到 37,484 个经过验证的 Terminal 任务，平均每个通过任务的生成成本约为 0.05 美元。更重要的是，它展示了一套可复用的工程方法：**扩大高质量轨迹的关键，不是先批量生成轨迹，而是先批量制造可靠的、难度可增长的轨迹发生器。**
 
+## 开源到了什么程度？
+
+截至 2026 年 9 月 3 日，RST 已经开放了大量数据与审计工具，但**完整的递归合成工厂代码尚未公开**。更准确地说，目前公开内容包括：
+
+- [37,484 个验证任务及完整可运行任务包](https://huggingface.co/datasets/Zhongzhi1228/Recursive-Task-Synthesis)，包含 instruction、task 配置、solution、verifier、Dockerfile 和附属工作区文件；
+- [约 327K 条完成的 Agent 轨迹](https://huggingface.co/datasets/Zhongzhi1228/Recursive-Task-Synthesis-Trajectories)；
+- [SFT、RL checkpoint 与相关数据的 Hugging Face 合集](https://huggingface.co/collections/Zhongzhi1228/recursive-synthesis-for-long-horizon-terminal-tasks)；
+- [用于查看任务 diff、轨迹和 rubric 的 Viewer 源码](https://github.com/alexhuang13/viewer)；
+- [交互式项目页面](https://zhongzhi660.github.io/recursive-verified-synthesis-site/)及其[网页源码](https://github.com/Zhongzhi660/recursive-verified-synthesis-site)。
+
+目前没有发现论文所述 manifest-driven task factory 的公开实现，例如 local affordance scan、operator balancing、分阶段 prompt orchestration、静态门控、feedback repair 和 round-to-round materialization 的完整脚本。论文附录 E 给出了核心 prompts，附录 B-D 给出了相当细的实现约束，因此可以据此复现思路；但这仍不等于作者已经开源端到端 synthesis pipeline。后文凡涉及实际文件形态的判断，会同时参考公开任务包；涉及调度与生成控制的判断，则以论文和附录为准。
+
 ## 先分清两个数据单位：Task 不等于 Trajectory
 
 理解 RST 前，首先要区分“任务”和“轨迹”。
@@ -85,6 +97,16 @@ RST 不把“参考脚本运行成功”当作唯一准入条件，而是同时�
 
 *图 2：单轮递归合成的完整流程。系统保留种子任务的文件结构，通过增加执行步骤、状态依赖和更严格的语义检查来提高难度；本地检查过滤表面或畸形改写，沙箱 Oracle 验证任务确实可解，可恢复失败根据日志有限修复。最终仅从通过任务中选择多样化子集进入下一轮。图片来源：原论文 Figure 3。*
 
+原图给出了宏观结构。为了区分“生成文件”“静态检查”和“真实执行”，可以把一轮改写进一步拆成下面的 P0-P9：
+
+![RST 任务改写、静态检查与首次沙箱执行的详细流程](/assets/blog/2026-08-31-recursive-synthesis-for-long-horizon-terminal-tasks/rst-rewrite-workflow-detailed.svg)
+
+*图 3：一轮 RST 改写的详细阶段图。红色虚线是关键分界：P0-P6 只读取、生成和交叉检查文件，两个静态 gate 也不会运行参考解法；改写后的 `solution/solve.sh` 第一次真正执行发生在 P7 的 fresh sandbox oracle validation。*
+
+后文统一使用这些阶段编号：P1 是规则扫描，P2 是受限的 LLM 判断与契约生成，P3-P6 是按文件改写和一致性修复，P7 是第一次真实执行，P8 是最多两轮的日志驱动修复，P9 才把任务写入 accepted manifest 并送入 rollout 与下一轮 seed selection。
+
+论文正文 4.3 按逻辑依赖描述为“solution → environment → verifier → instruction”；附录 B/E 给出的实际 staged prompts 则是“solution → verifier → instruction → optional environment alignment → consistency repair”。两者并不矛盾：环境条件在 contract 中已经先确定，真正的 Dockerfile/task metadata 修改可以延后到专门阶段，最后再由 consistency repair 统一消除跨文件冲突。图 3 采用附录中的实现阶段顺序，方便定位每一步的输入、输出和是否发生执行。
+
 这里真正决定质量的是下面这些实现细节。
 
 为了让后面的步骤更直观，可以先设想一个贯穿全文的小例子：种子任务要求读取 `/app/data/` 中的 CSV 文件并生成汇总报告 `report.json`，工作区的 README 描述了字段含义。RST 不会简单地把指令改成“处理更多文件”，而可能在保留汇总目标的基础上，增加输入清单核对、异常行处理、checksum 和 provenance 记录。于是，Agent 必须先发现本地规则，再处理数据、校验计数，最后生成彼此一致的报告与证据文件。
@@ -112,6 +134,10 @@ RST 为此定义了 40 个改写算子（rewrite operators），并将它们组�
 - 对已经被频繁选择的算子施加逆频率惩罚。
 
 选择器会记录一个首选算子、最多五个可行备选，以及明确不适用于该种子的算子。随后再进行模型排序（affordance ranking），判断首选算子是否自然、安全、具有足够的本地证据。模型可以改选备选项，但不能绕过前面的局部扫描，凭空选择一个已被排除的算子。
+
+> 论文原文：*“up to five feasible alternatives”*（Appendix B, p.20）
+
+所以，“规则还是 LLM 决定算子”的准确答案是：**规则先决定可选集合并给出 preferred operator，LLM 再在这个受限集合中作语义复核和最终选择。**规则负责硬可行性、批次均衡和频率控制；LLM 负责判断这个改写放在当前任务中是否自然。两者都参与，但 LLM 没有越过规则白名单自由发明算子的权限。
 
 以前面的 CSV 任务为例，工作区已经存在结构化数据、报告格式和输入文件，因此 `checksum_hash_provenance` 或 `artifact_inventory_reconciliation` 是自然的改写算子；如果任务中没有服务、端口或进程，却硬套 `service_process_lifecycle`，就只能凭空引入额外环境，改写既不自然也更容易失败。**算子不是给任务贴的主题标签，而是规定“通过什么可执行机制让任务变难”。**
 
@@ -179,11 +205,57 @@ RST 最关键的设计选择是 **grow solution, then align**：先扩展 `solut
 
 `tests/test_state.py` 和 `tests/test.sh` 检查的是用户可见结果、重要中间状态以及原任务必须保留的行为，而不是强制 Agent 复现 `solve.sh` 的逐条命令。
 
+> 论文原文：*“derives checks from the transformation contract”*（Appendix B, p.20）
+
+这里需要区分三个对象：
+
+- `solution/solve.sh` 是参考成功路径，用来证明任务有解；
+- `tests/test_state.py` 是状态检查集合，通常由多个独立的 pytest `test_*` 函数组成；
+- `tests/test.sh` 是 verifier entry point，负责启动这些检查并把结果写到 Harbor 约定的位置。
+
+因此，`test_state.py` **不是检查“solution 这段脚本是否被执行过”**，而是检查执行结束后的 workspace state 是否满足契约。做 Oracle validation 时，这个状态由改写后的 solution 产生；做 Agent rollout 时，同一状态由 Agent 的命令产生。验证器不应根据“谁生成了状态”改变判定。
+
 好的验证器应该检查语义，而非实现细节。例如，检查 manifest 与真实产物是否一致，比检查 Agent 是否执行过某条固定的 `jq` 命令更稳健；检查归档内容、checksum 和来源关系，比检查一个文件是否存在更难被占位符欺骗。
 
 例如，CSV 任务的验证器应该重新计算行数与 checksum，确认 `report.json`、`manifest.json` 和真实输入一致；它不应该要求 Agent 必须调用 `sha256sum`，因为用 Python 计算相同 SHA-256 也是合法解法。前者验证“结果是否正确”，后者只是模仿参考脚本的命令顺序。
 
 同时，验证器需要提供足够明确的失败信息，用于定位缺失产物、错误格式和不一致状态，但错误信息不能泄露完整解法。
+
+### `test_state.py` 与 reward 到底是什么关系？
+
+答案不是“检查产物”与“提供 reward”二选一，而是前者构成后者的依据。公开任务包显示，典型形式如下：
+
+```text
+最终 workspace state
+    ↓
+tests/test_state.py 中多个 pytest test_* 检查
+    ├── 文件、权限、进程或数据库状态
+    ├── 契约中的中间产物是否存在、可解析且语义正确
+    ├── 最终产物是否满足目标
+    └── 是否使用 placeholder、旧产物或硬编码绕过流程
+    ↓
+tests/test.sh 调用 pytest
+    ├── /logs/verifier/ctrf.json：逐项测试结果
+    └── /logs/verifier/reward.txt：全通过为 1，否则为 0
+```
+
+例如，公开任务 `rts_task_04b49...` 的 `test_state.py` 分别检查 C 源文件、命令输出以及最终程序是否真的是 ELF binary；另一个 Git 任务把 commit message、两次提交的内容、clean worktree、日志格式和 commit hash 拆成八个测试。也就是说，中间产物会被检查，但前提是它属于 contract 的 expected artifacts 或 reward checks；系统并不要求机械地检查 solution 中出现过的每一个临时文件。
+
+论文把 partial credit 定义为“通过的 verifier checks 所占比例”，RL 又在任务内置 verifier 之上使用 customized reward shaping。因此可作如下区分：
+
+- **最终准入信号**：Oracle validation 要求所有检查通过，公开样例中的 `reward.txt` 是 0/1；
+- **细粒度进度信号**：`ctrf.json` 和独立 test cases 保留每项通过/失败结果，可以计算 partial credit，并作为 RL reward shaping 的基础；
+- **尚未公开的部分**：论文没有给出 customized reward shaping 的完整代码，所以不能断言 PPO 使用的标量奖励就是简单的 `passed_tests / all_tests`，只能确认 verifier 子检查是其基础信号。
+
+### Verifier 会不会参考 solution？原始测试会不会被改？
+
+会参考，但 **solution 不是 verifier 的唯一规范来源**。P3 先写入更新后的 `solve.sh`；P4 的 prompt 接收 transformation contract 和当前任务上下文，因此能够看到已更新的任务文件。它必须根据 contract 定义检查，并利用 solution 判断产物能否被真实生成，但不能把 solution 的偶然命令顺序复制成验收标准。到 P6，系统还会显式比较 verifier 要求的路径与 solution 实际创建的路径，修复二者的不一致。
+
+原始测试也不是只读的。`tests/test_state.py` 和 `tests/test.sh` 都在六个允许改写的文件中，P4 会返回它们的完整新内容；feedback repair 也可以再次修改它们。不过，改写原则是增量演化，而不是把父任务测试全部推倒重来：
+
+> 论文原文：*“preserves relevant checks from the parent task”*（Appendix B, p.20）
+
+因此，仍然对应 preserved workflow 的父任务 checks 应保留；新增 checks 覆盖本轮加入的执行阶段、产物和反捷径条件；只有当新 contract 明确取代旧要求时，旧检查才可以被替换。修复阶段也只能修正 verifier 与 contract 的不一致，不能为了让 solution 通过而削弱语义检查。
 
 ### 4.2 将公开指令（public instruction）控制为“公平目标”，而不是验收清单
 
@@ -247,14 +319,18 @@ RST 最关键的设计选择是 **grow solution, then align**：先扩展 `solut
 
 ## 第六步：执行沙箱 Oracle 验证（sandbox oracle validation），并只做有限反馈修复（feedback repair）
 
-通过静态检查的候选任务会交给 Harbor，在全新的 Daytona 沙箱中执行一次参考解法，再运行私有验证器。只有同时满足以下条件才算 `oracle-passed`：
+改写后的 solution **第一次真正执行就在这里，即流程图的 P7**。在此之前，P3 只是让模型生成 `solve.sh`，P6 只是按文件和路径进行 consistency audit 及 mental execution，generation-quality gate 与 static preflight 也都是不运行 solution 的确定性检查。
+
+> 论文原文：*“Each candidate receives one oracle execution”*（Appendix B, p.22）
+
+通过静态检查的候选任务才会交给 Harbor：Daytona 从任务定义构建一个全新的初始沙箱，执行一次改写后的参考解法，随后在该解法留下的最终 workspace 上运行私有验证器。只有同时满足以下条件才算 `oracle-passed`：
 
 - 验证器奖励为 1；
 - 整次 trial 没有执行异常。
 
 其余结果被分类为零奖励、构建失败、运行时错误、超时、输出过量或未知错误。对于可恢复错误，修复模型会收到 transformation contract、截断后的构建日志、执行日志、验证结果和失败元数据。它必须先判断具体根因，然后只能在六个白名单文件内做最小修复。
 
-修复不能通过删除语义检查、取消反捷径规则或把私有要求抄进公开指令来“刷通过”。修复后的任务必须重新经过 static preflight，并在一个新的沙箱中重新验证。论文配置最多允许两轮反馈修复；仍然失败的候选直接丢弃。
+修复不能通过删除语义检查、取消反捷径规则或把私有要求抄进公开指令来“刷通过”。修复后的任务必须重新经过 static preflight，并在一个新的沙箱中重新验证。也就是说，“一次 oracle execution”指首次验证尝试；若进入 P8，每轮有效修复还会触发一次新的沙箱执行。论文配置最多允许两轮反馈修复；仍然失败的候选直接丢弃。
 
 例如，若动态日志显示 `manifest.json` 缺少一个由参考解法漏写的输入项，修复应补齐 `solve.sh` 的清单生成逻辑；如果 Docker build 报告缺少 `COPY` 源，则修复 Dockerfile 或任务配置。系统不能为了通过而删除该项验证，也不能把预期 checksum 从私有失败日志抄进公开指令。
 
@@ -421,3 +497,7 @@ RST 最值得借鉴的不是“递归调用大模型”本身，而是它对递�
 
 - Zhongzhi Li et al. *Recursive Synthesis for Long-Horizon Terminal Tasks*. arXiv:2608.05466, 2026.
 - 本文的方法细节同时参考了论文附录 B（递归合成实现）、附录 C（算子分类）、附录 D（过滤、预检和修复策略）以及附录 E（完整合成提示词模板）。
+- [RST 项目页面](https://zhongzhi660.github.io/recursive-verified-synthesis-site/)：合成流程、实验结果与案例审计入口。
+- [Recursive Task Synthesis 数据集](https://huggingface.co/datasets/Zhongzhi1228/Recursive-Task-Synthesis)：37,484 个公开任务及 sanitized runnable task packages。本文关于 `test.sh`、`test_state.py`、CTRF 和 `reward.txt` 形式的说明来自对公开任务包的抽样核对。
+- [Recursive Task Synthesis Trajectories](https://huggingface.co/datasets/Zhongzhi1228/Recursive-Task-Synthesis-Trajectories)：公开轨迹数据。
+- [Terminal Agent Viewers](https://github.com/alexhuang13/viewer)：任务、轨迹与 rubric 审计工具源码。

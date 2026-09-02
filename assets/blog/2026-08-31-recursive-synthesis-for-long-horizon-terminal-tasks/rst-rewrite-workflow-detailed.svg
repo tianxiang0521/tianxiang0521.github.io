@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1680" viewBox="0 0 1200 1680" role="img" aria-labelledby="title desc">
+  <title id="title">RST 任务改写与首次执行的完整工作流</title>
+  <desc id="desc">展示从种子任务、规则扫描、LLM 排序、契约生成、分阶段文件改写、静态门控，到第一次沙箱执行、有限修复、接收与重新播种的顺序。</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#476582"/>
+    </marker>
+    <style>
+      .title { font: 700 34px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #17283b; }
+      .subtitle { font: 400 19px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #52677c; }
+      .phase { font: 700 17px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #2b587a; letter-spacing: 0.7px; }
+      .head { font: 700 24px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #17283b; }
+      .body { font: 400 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #3d5268; }
+      .small { font: 400 16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #5d7083; }
+      .edge { fill: none; stroke: #476582; stroke-width: 3; marker-end: url(#arrow); }
+      .rule { fill: #edf6ff; stroke: #6d9dc5; stroke-width: 2.5; }
+      .llm { fill: #f4f0ff; stroke: #8d78bf; stroke-width: 2.5; }
+      .rewrite { fill: #fff5e8; stroke: #c58b4e; stroke-width: 2.5; }
+      .static { fill: #f4f6f8; stroke: #8998a6; stroke-width: 2.5; }
+      .execute { fill: #eaf8ef; stroke: #58a470; stroke-width: 2.5; }
+      .decision { fill: #fffbed; stroke: #b79a39; stroke-width: 2.5; }
+      .reject { fill: #fff0f1; stroke: #c6787f; stroke-width: 2.5; }
+      .accepted { fill: #e5f6f0; stroke: #3b9976; stroke-width: 3; }
+      .boundary { stroke: #bf6b6b; stroke-width: 2.5; stroke-dasharray: 10 8; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="1680" fill="#ffffff"/>
+  <text x="600" y="55" text-anchor="middle" class="title">RST 任务改写 workflow：何时生成，何时第一次执行</text>
+  <text x="600" y="88" text-anchor="middle" class="subtitle">规则缩小候选空间 → LLM 做受限判断 → 分阶段改文件 → 静态过滤 → 沙箱执行</text>
+
+  <rect x="210" y="125" width="780" height="105" rx="16" class="rule"/>
+  <text x="245" y="160" class="phase">P0 · SEED INTAKE</text>
+  <text x="245" y="194" class="head">校验并复制 verified seed task</text>
+  <text x="245" y="220" class="body">确认 instruction、task config、oracle solution、verifier、environment 齐全</text>
+
+  <path d="M600 230 L600 265" class="edge"/>
+  <rect x="210" y="270" width="780" height="115" rx="16" class="rule"/>
+  <text x="245" y="305" class="phase">P1 · LOCAL AFFORDANCE SCAN（规则）</text>
+  <text x="245" y="339" class="head">为 40 个 rewrite operators 计算可行性</text>
+  <text x="245" y="368" class="body">输出：1 个 preferred、最多 5 个 fallback、以及 blocked operators</text>
+
+  <path d="M600 385 L600 420" class="edge"/>
+  <rect x="210" y="425" width="780" height="130" rx="16" class="llm"/>
+  <text x="245" y="460" class="phase">P2 · LLM RANKING + TRANSFORMATION CONTRACT</text>
+  <text x="245" y="494" class="head">LLM 只能在规则允许的候选中选算子</text>
+  <text x="245" y="523" class="body">契约固定 preserved workflow、新要求、task chain、artifacts、reward checks</text>
+  <text x="245" y="547" class="small">此时仍未执行改写后的 solution</text>
+
+  <path d="M600 555 L600 590" class="edge"/>
+  <rect x="210" y="595" width="780" height="105" rx="16" class="rewrite"/>
+  <text x="245" y="630" class="phase">P3 · ORACLE-SOLUTION REWRITE</text>
+  <text x="245" y="664" class="head">先扩展 solution/solve.sh 的真实执行路径</text>
+  <text x="245" y="691" class="body">inspect → derive → execute → validate → finalize</text>
+
+  <path d="M600 700 L600 735" class="edge"/>
+  <rect x="210" y="740" width="780" height="115" rx="16" class="rewrite"/>
+  <text x="245" y="775" class="phase">P4 · VERIFIER REWRITE</text>
+  <text x="245" y="809" class="head">按 contract 重写 tests/test_state.py 与 tests/test.sh</text>
+  <text x="245" y="838" class="body">保留重要的 parent checks；检查语义状态，不绑定 solve.sh 的命令顺序</text>
+
+  <path d="M600 855 L600 890" class="edge"/>
+  <rect x="210" y="895" width="780" height="115" rx="16" class="rewrite"/>
+  <text x="245" y="930" class="phase">P5 · INSTRUCTION + ENVIRONMENT ALIGNMENT</text>
+  <text x="245" y="964" class="head">压缩公开目标；仅在必要时修改 Dockerfile / task.toml</text>
+  <text x="245" y="993" class="body">所有 reward-relevant 条件必须公开或能从 workspace 发现</text>
+
+  <path d="M600 1010 L600 1045" class="edge"/>
+  <rect x="210" y="1050" width="780" height="105" rx="16" class="llm"/>
+  <text x="245" y="1085" class="phase">P6 · CROSS-FILE CONSISTENCY REPAIR</text>
+  <text x="245" y="1119" class="head">对齐 contract、solution、verifier、instruction 与 environment</text>
+  <text x="245" y="1146" class="body">这里只做列表比对与“mental execution”，仍未真正运行 solution</text>
+
+  <line x1="95" y1="1195" x2="1105" y2="1195" class="boundary"/>
+  <rect x="360" y="1175" width="480" height="40" rx="20" fill="#ffffff" stroke="#bf6b6b" stroke-width="2"/>
+  <text x="600" y="1202" text-anchor="middle" class="phase" style="fill:#a14d4d">执行分界线：上方只生成/检查文件，下方才会运行</text>
+
+  <path d="M600 1215 L600 1250" class="edge"/>
+  <rect x="210" y="1255" width="780" height="105" rx="16" class="static"/>
+  <text x="245" y="1290" class="phase">GATES · GENERATION QUALITY + STATIC PREFLIGHT</text>
+  <text x="245" y="1324" class="head">便宜的确定性检查先过滤坏任务</text>
+  <text x="245" y="1351" class="body">结构变化、泄漏、Docker/COPY、产物对应、证据可发现性；不执行 solve.sh</text>
+
+  <path d="M600 1360 L600 1395" class="edge"/>
+  <rect x="210" y="1400" width="780" height="105" rx="16" class="execute"/>
+  <text x="245" y="1435" class="phase">P7 · FIRST REAL EXECUTION</text>
+  <text x="245" y="1469" class="head">在 fresh Daytona sandbox 中第一次执行改写后的 solve.sh</text>
+  <text x="245" y="1496" class="body">随后运行 private verifier；要求 reward = 1 且没有 execution exception</text>
+
+  <path d="M600 1505 L600 1540" class="edge"/>
+  <polygon points="600,1545 745,1600 600,1655 455,1600" class="decision"/>
+  <text x="600" y="1593" text-anchor="middle" class="head">Oracle + contract valid?</text>
+  <text x="600" y="1621" text-anchor="middle" class="small">通过 / 可修复失败 / 不可修复失败</text>
+
+  <path d="M745 1600 L905 1600" class="edge"/>
+  <text x="825" y="1585" text-anchor="middle" class="small">失败且可修复</text>
+  <rect x="910" y="1538" width="245" height="124" rx="16" class="reject"/>
+  <text x="1032" y="1572" text-anchor="middle" class="phase">P8 · BOUNDED REPAIR</text>
+  <text x="1032" y="1604" text-anchor="middle" class="body">最多 2 轮</text>
+  <text x="1032" y="1631" text-anchor="middle" class="small">修复 → preflight → 新沙箱重跑</text>
+  <text x="1032" y="1653" text-anchor="middle" class="small">不可修复/超限 → Discard</text>
+  <path d="M1032 1538 L1032 1310 L995 1310" class="edge"/>
+
+  <path d="M455 1600 L300 1600" class="edge"/>
+  <text x="377" y="1585" text-anchor="middle" class="small">通过</text>
+  <rect x="45" y="1548" width="250" height="104" rx="16" class="accepted"/>
+  <text x="170" y="1583" text-anchor="middle" class="phase">P9 · ACCEPT</text>
+  <text x="170" y="1617" text-anchor="middle" class="head">写入 final manifest</text>
+  <text x="170" y="1644" text-anchor="middle" class="small">进入 rollout 池 + 多样性受控 reseeding</text>
+</svg>
