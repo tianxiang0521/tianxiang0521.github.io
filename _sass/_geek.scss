@@ -230,6 +230,23 @@ body > .wrapper > section {
   width: 730px;
 }
 
+// Individual posts are distraction-free reading pages. The profile card is
+// omitted by the layout, and the article is centered in the available space.
+body.page-post > .wrapper {
+  max-width: 860px;
+  width: calc(100% - 48px);
+}
+
+body.page-post > .wrapper > section {
+  float: none;
+  margin: 0 auto;
+  width: 100%;
+}
+
+body.page-post > .wrapper > footer {
+  display: none;
+}
+
 .content-path {
   align-items: center;
   border-bottom: 1px solid var(--tech-border);
@@ -634,6 +651,11 @@ body > .wrapper > section > p:last-of-type small {
   body > .wrapper > section {
     border-color: var(--tech-border);
     padding-top: 2rem;
+    width: auto;
+  }
+
+  body.page-post > .wrapper {
+    max-width: 860px;
     width: auto;
   }
 }

@@ -35,6 +35,7 @@
   </head>
   <body class="{% if page.url == "/" %}page-home{% elsif page.layout == "post" %}page-post{% else %}page-{{ page.title | default: "content" | slugify }}{% endif %}">
     <div class="wrapper">
+      {% unless page.layout == "post" %}
       <header>
         <div class="profile-kicker"><span class="profile-status-dot" aria-hidden="true"></span> Research profile</div>
 
@@ -98,6 +99,7 @@
         </nav>
 
       </header>
+      {% endunless %}
       <section>
 
       <div class="content-path" aria-hidden="true">
